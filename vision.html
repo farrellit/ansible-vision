@@ -1,0 +1,100 @@
+<h2>My Vision for Ansible-Powered Systems</h2>
+
+<h3>Principles</h3>
+<ol>
+  <li><em>Systems should be as reliable as possible</em>. 
+    Opportunities for dependencies to change behind the scenes should 
+    be minimized.  
+  </li>
+  <li><em>Decoupling points should be clearly defined and maintained.</em>
+    We should clearly dictate deliverables so that each team knows 
+    whats expected of them.
+  </li>
+  <li><em>Reliance on infrastructure should be minimized. </em>
+    We should rely on as litle as possible.  When we see outages, they will
+    likely effect large groups of our systems.  The more infrastructure 
+    our operations rely on, the more prerequisites our systems will have 
+    to be repaired.  
+  </li>
+  <li>Artifacts should be as avialable as possible.  This means S3! </li>
+</ol>
+
+<h3>Definitions</h3>
+<dl>
+  <dt>Role / Playbook Author</dt> 
+    <dd>A developer or engineer, or anybody else,
+      who expresses work to be don in ansible.  This might be anybody who 
+      has configuration or orchestration work to be done.
+    </dd>
+  <dt>Ansible Play</dt> <dd>An execution of <code>ansible-playbook</code>,
+    potentially executing multiple playbooks.
+    </dd>
+  <dt>Versioned Artifact</dt> <dd>An archive consisting of all the 
+    pieces required to use a particular role or playbook, or supporting 
+    files.  This allows a strong degree of confidence that components can 
+    develop independently from their consumers.  
+  </dd>
+  <dt></dt> <dd></dd>
+  <dt></dt> <dd></dd>
+</dl>
+
+
+<h3>Overall Process</h3>
+<p>
+  In a nutshell, we write ansible roles & pull them together in playbooks. 
+  We build playbooks into artifacts ( including their dependent roles ).
+  We then define dependencies on those artifacts for the overal 
+  ansible runs.  Each environment has a separate repository of 
+  inventory and group_vars, informed by the playbook authors' 
+  shipped playbooks.   
+</p>
+<p>
+  CI brings the dependent playbooks together and executes them 
+  in the context of one or more environments.  After the play has 
+  been executed, the target systems are ready to be snapshotted.  The 
+  snapshot ideally would include an AMI, and possibly also a VMDK and/or 
+  Vagrant image.  These become the final deliverables of the 
+  ansible process.  They are indexed in SimpleDB or another highly 
+  available database.
+</p>
+  Local environments can bring up systems based on the Vagrant box.  The
+  same systems can be brough up without modification in Amazon from AMI, 
+  or in the datacenter with a VMDK.
+</p>
+
+<ol>
+  <li>Role Author delivers a versioned ansible role artifact.  
+    The role can be executed as-is with playbooks built in the 
+    same way as when a playbook is executed, but in this case 
+    the playbook and supporting files merely provide working 
+    demonstration of the role, and role testing components.
+    The artifact would include only the role and would be versioned. 
+  </li>
+  <li>Playbook Author delivers a versioned playbook artifact. 
+    The artifact should stand alone in the sense that it should define 
+    inventory and variables to deploy to a local stack brough up by 
+    an included Vagrantfile.  This must also include some way of defining 
+    which environment variables must be set for the playbook to execute.
+  </li>
+  <li>Operators update the per-environment 
+    <code>inventory</code> and <code>group_vars</code> 
+    repositories, using ansible-vault and environment-specific vault 
+    passwords ( shared via eg Password Manager Pro and/or KSM) and 
+    pushing an update to a versioned resource in S3.  A comparison job 
+    should be in place to verify that each required environment variable 
+    is set in each environment.  
+  </li>
+  <li>Images and CloudFormation templates (Vagrantfiles? other templates?)
+    are cut for each environment.  These images would include 
+    all necessary components for the images to function as desired. 
+    Outlying cases ( eg long term block storage ) will be managed 
+    by scripts on the host.  (In AWS, permissions will be granted via 
+    an Instance Profile to manage these resources ).
+  </li>
+  <li>Cloud Formation stacks can be deployed at any time to any 
+    environment, by simply creating the stack from the premade 
+    template.  The stacks should define ASGs so they can heal 
+    autonomously.  Etc.  
+  </li>
+</ol>
+
